@@ -11,6 +11,7 @@
         <div id="gameTitle">🚀 ビームシューター 🚀</div>
         <div id="gameInfo">
             <span id="score">スコア: 0</span>
+            <span id="highScore">ハイスコア: 0</span>
             <span id="life">ライフ: ❤️❤️❤️</span>
             <span id="power">パワー: 1</span>
             <span id="shield">バリア: 0</span>
@@ -61,7 +62,13 @@
         <div id="gameClear" class="hidden">
             <h2>ゲームクリア</h2>
             <p>最終スコア: <span id="clearScore">0</span></p>
+            <p>ハイスコア: <span id="clearHighScore">0</span></p>
             <button id="clearRestartBtn">もう一度プレイ</button>
+        </div>
+        <div id="pauseScreen" class="hidden">
+            <h2>ポーズ</h2>
+            <p>Pキーまたは画面をタップして再開</p>
+            <button id="resumeBtn">再開</button>
         </div>
     </div>
     <script src="script.js"></script>
