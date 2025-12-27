@@ -130,7 +130,7 @@ body {
   }
 
 
-#gameOver, #gameClear {
+#gameOver, #gameClear, #pauseScreen {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -140,6 +140,16 @@ body {
   border-radius: 15px;
   border: 2px solid #fff;
   z-index: 100;
+}
+
+#pauseScreen {
+  border-color: #ffa500;
+}
+
+#pauseScreen h2 {
+  color: #ffa500;
+  margin-bottom: 15px;
+  font-size: 2em;
 }
 
 #gameOver h2 {
@@ -154,7 +164,7 @@ body {
   font-size: 2em;
 }
 
-#restartBtn, #clearRestartBtn, #startBtn {
+#restartBtn, #clearRestartBtn, #startBtn, #resumeBtn {
   background: linear-gradient(145deg, #4CAF50, #45a049);
   color: white;
   border: none;
@@ -166,7 +176,7 @@ body {
   transition: all 0.1s;
 }
 
-#restartBtn:hover, #clearRestartBtn:hover, #startBtn:hover {
+#restartBtn:hover, #clearRestartBtn:hover, #startBtn:hover, #resumeBtn:hover {
   transform: scale(1.05);
   box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
 }

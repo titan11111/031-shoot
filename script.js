@@ -4,6 +4,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
+const highScoreElement = document.getElementById('highScore');
 const lifeElement = document.getElementById('life');
 const powerElement = document.getElementById('power');
 const shieldElement = document.getElementById('shield');
@@ -14,12 +15,15 @@ const finalScoreElement = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
 const gameClearElement = document.getElementById('gameClear');
 const clearScoreElement = document.getElementById('clearScore');
+const clearHighScoreElement = document.getElementById('clearHighScore');
 const clearRestartBtn = document.getElementById('clearRestartBtn');
 const startScreen = document.getElementById('startScreen');
 const startBtn = document.getElementById('startBtn');
 const bombContainer = document.getElementById('bombContainer');
 const bombCountDisplay = document.getElementById('bombCountDisplay');
 const bombBtn = document.getElementById('bombBtn');
+const pauseScreen = document.getElementById('pauseScreen');
+const resumeBtn = document.getElementById('resumeBtn');
 
 const STAGE_DURATION = 60 * 60; // 1 minute at 60 FPS
 const MAX_SATELLITES = 4; // Maximum number of support satellites
@@ -73,9 +77,24 @@ document.addEventListener('touchmove', (e) => {
     e.preventDefault();
 }, { passive: false });
 
+// ハイスコア管理
+function getHighScore() {
+    return parseInt(localStorage.getItem('beamShooterHighScore') || '0', 10);
+}
+
+function saveHighScore(score) {
+    const currentHigh = getHighScore();
+    if (score > currentHigh) {
+        localStorage.setItem('beamShooterHighScore', score.toString());
+        return true;
+    }
+    return false;
+}
+
 // ゲーム状態
 let gameState = {
     playing: false,
+    paused: false,
     score: 0,
     life: 3,
     power: 1,
@@ -129,6 +148,9 @@ document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code === 'KeyB') {
         useBomb();
+    }
+    if (e.code === 'KeyP' || e.code === 'Escape') {
+        togglePause();
     }
 });
 
@@ -222,6 +244,12 @@ bombBtn.addEventListener('mousedown', (e) => {
 restartBtn.addEventListener('click', restartGame);
 clearRestartBtn.addEventListener('click', restartGame);
 startBtn.addEventListener('click', startGame);
+resumeBtn.addEventListener('click', togglePause);
+pauseScreen.addEventListener('click', (e) => {
+    if (e.target === pauseScreen) {
+        togglePause();
+    }
+});
 
 // 弾丸クラス
 class Bullet {
@@ -914,10 +942,47 @@ function useBomb() {
     }
 }
 
+// ポーズ機能
+function togglePause() {
+    if (!gameState.playing) return;
+    gameState.paused = !gameState.paused;
+    if (gameState.paused) {
+        pauseScreen.classList.remove('hidden');
+        bgm.pause();
+        bossBgm.pause();
+    } else {
+        pauseScreen.classList.add('hidden');
+        if (gameState.bossActive && gameState.stage === 6) {
+            bossBgm.play().catch(() => {});
+        } else if (gameState.bossActive) {
+            bossBgm.play().catch(() => {});
+        } else {
+            bgm.play().catch(() => {});
+        }
+    }
+}
+
 // ゲームオーバー
 function gameOver() {
     gameState.playing = false;
+    const isNewRecord = saveHighScore(gameState.score);
     finalScoreElement.textContent = gameState.score;
+    
+    // 既存の新記録メッセージを削除
+    const existingMsg = gameOverElement.querySelector('.newRecordMsg');
+    if (existingMsg) {
+        existingMsg.remove();
+    }
+    
+    if (isNewRecord) {
+        const highScoreMsg = document.createElement('p');
+        highScoreMsg.textContent = '🎉 新記録！';
+        highScoreMsg.className = 'newRecordMsg';
+        highScoreMsg.style.color = '#ffd700';
+        highScoreMsg.style.fontWeight = 'bold';
+        highScoreMsg.style.marginTop = '10px';
+        gameOverElement.appendChild(highScoreMsg);
+    }
     gameOverElement.classList.remove('hidden');
     bgm.pause();
     bossBgm.pause();
@@ -925,7 +990,25 @@ function gameOver() {
 
 function gameClear() {
     gameState.playing = false;
+    const isNewRecord = saveHighScore(gameState.score);
     clearScoreElement.textContent = gameState.score;
+    clearHighScoreElement.textContent = getHighScore();
+    
+    // 既存の新記録メッセージを削除
+    const existingMsg = gameClearElement.querySelector('.newRecordMsg');
+    if (existingMsg) {
+        existingMsg.remove();
+    }
+    
+    if (isNewRecord) {
+        const highScoreMsg = document.createElement('p');
+        highScoreMsg.textContent = '🎉 新記録！';
+        highScoreMsg.className = 'newRecordMsg';
+        highScoreMsg.style.color = '#ffd700';
+        highScoreMsg.style.fontWeight = 'bold';
+        highScoreMsg.style.marginTop = '10px';
+        gameClearElement.appendChild(highScoreMsg);
+    }
     gameClearElement.classList.remove('hidden');
     bgm.pause();
     bossBgm.pause();
@@ -933,16 +1016,21 @@ function gameClear() {
 
 function startGame() {
     startScreen.classList.add('hidden');
+    pauseScreen.classList.add('hidden');
     gameState.playing = true;
+    gameState.paused = false;
     initAudio();
     bgm.play().catch(() => {});
+    updateUI(); // ハイスコアを表示
 }
 
 // ゲーム再開
 function restartGame() {
     startScreen.classList.add('hidden');
+    pauseScreen.classList.add('hidden');
     gameState = {
         playing: true,
+        paused: false,
         score: 0,
         life: 3,
         power: 1,
@@ -1009,6 +1097,8 @@ function nextStage() {
 // UI更新
 function updateUI() {
     scoreElement.textContent = `スコア: ${gameState.score}`;
+    const highScore = getHighScore();
+    highScoreElement.textContent = `ハイスコア: ${highScore}`;
 
     const hearts = '❤️'.repeat(gameState.life);
     lifeElement.textContent = `ライフ: ${hearts}`;
@@ -1038,7 +1128,10 @@ function draw() {
         ctx.fillRect(x, y, 1, 1);
     }
 
-    // プレイヤー描画
+    // プレイヤー描画（無敵時間の点滅エフェクト）
+    const invincibleAlpha = player.invincible > 0 ? (Math.floor(gameState.frameCount / 5) % 2 === 0 ? 0.3 : 1.0) : 1.0;
+    ctx.save();
+    ctx.globalAlpha = invincibleAlpha;
     ctx.fillStyle = '#00ffcc';
     ctx.fillRect(player.x - player.width/2, player.y - player.height/2, player.width, player.height);
 
@@ -1053,6 +1146,17 @@ function draw() {
     // 機体の詳細
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(player.x - 2, player.y - player.height/2, 4, 10);
+    
+    // 無敵時間中の光るエフェクト
+    if (player.invincible > 0) {
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.width * 1.2, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.restore();
 
     // サテライト描画
     satellites.forEach(sat => {
@@ -1091,7 +1195,7 @@ function draw() {
 
 // メインゲームループ
 function gameLoop() {
-    if (gameState.playing) {
+    if (gameState.playing && !gameState.paused) {
         gameState.frameCount++;
         if (!gameState.bossActive) {
             gameState.stageFrame++;
@@ -1147,6 +1251,7 @@ function gameLoop() {
 }
 
 // ゲーム開始
+updateUI(); // 初期ハイスコア表示
 gameLoop();
 bgm.play().catch(() => {});
 
