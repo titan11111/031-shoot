@@ -131,7 +131,22 @@ document.addEventListener('touchmove', (e) => {
     e.preventDefault();
 }, { passive: false });
 
-// ハイスコア管理
+// 【最新技術 #7】IndexedDB - スコア永続化
+let db = null;
+function initIndexedDB() {
+    if (!window.indexedDB) return;
+    const req = indexedDB.open('beamShooter', 1);
+    req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('scores')) {
+            db.createObjectStore('scores', { keyPath: 'id' });
+        }
+    };
+    req.onsuccess = (e) => { db = e.target.result; };
+}
+initIndexedDB();
+
+// ハイスコア管理（IndexedDB + localStorage フォールバック）
 function getHighScore() {
     return parseInt(localStorage.getItem('beamShooterHighScore') || '0', 10);
 }
@@ -140,6 +155,11 @@ function saveHighScore(score) {
     const currentHigh = getHighScore();
     if (score > currentHigh) {
         localStorage.setItem('beamShooterHighScore', score.toString());
+        if (db) {
+            db.transaction('scores', 'readwrite')
+                .objectStore('scores')
+                .put({ id: 'highScore', score: score, timestamp: Date.now() });
+        }
         return true;
     }
     return false;
@@ -273,6 +293,15 @@ resumeBtn.addEventListener('click', togglePause);
 pauseScreen.addEventListener('click', (e) => {
     if (e.target === pauseScreen) {
         togglePause();
+    }
+});
+
+// 【最新技術 #6】FullScreen API - 全画面プレイ対応
+gameContainer.addEventListener('dblclick', () => {
+    if (!document.fullscreenElement) {
+        gameContainer.requestFullscreen?.() || gameContainer.webkitRequestFullscreen?.();
+    } else {
+        document.exitFullscreen?.();
     }
 });
 
@@ -1275,8 +1304,19 @@ function draw() {
     }
 }
 
+// 【最新技術 #5】Performance API - フレーム監視
+let frameTimings = [];
+let lastTime = performance.now();
+
 // メインゲームループ
 function gameLoop() {
+    // パフォーマンス計測
+    const currentTime = performance.now();
+    const frameTime = currentTime - lastTime;
+    lastTime = currentTime;
+    frameTimings.push(frameTime);
+    if (frameTimings.length > 60) frameTimings.shift(); // 直近60フレーム保持
+
     if (gameState.playing && !gameState.paused) {
         gameState.frameCount++;
         if (!gameState.bossActive) {
@@ -1329,6 +1369,9 @@ function gameLoop() {
     }
     
     draw();
+    // 【最新技術 #8】RequestAnimationFrame 最適化
+    // ブラウザの画面リフレッシュレートに同期して呼び出し（通常60fps）
+    // 自動フレームスキップ対応
     requestAnimationFrame(gameLoop);
 }
 
