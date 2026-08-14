@@ -36,11 +36,28 @@
 
 **テスト状況**: ✅ 構文チェック OK
 
+### #3 Web Audio API / AudioContext （リアルタイムサウンド合成）
+**実装日**: 2026-08-14  
+**目的**: ゲーム効果音の生成、サウンド体験向上  
+**実装内容**:
+- `initAudioContext()` で AudioContext を初期化（webkit 互換性対応）
+- `playTone()` シンセ関数で周波数・波形・エンベロープを制御
+- 敵撃破時: 1000Hz (敵) / 1200Hz (ボス) の square/sine 波
+- 被弾時: 400Hz の低い sine 波
+- ボム使用時: 600→900→1200Hz の上昇シーケンス
+
+**効果**:
+- ローカル生成の効果音により、レイテンシーゼロ
+- ファイルサイズ削減（MP3ファイル不要）
+- リアルタイムカスタマイズ可能
+
+**テスト状況**: ✅ 構文チェック OK
+
 ---
 
-## 次の実装予定（残り 8 技術）
+## 次の実装予定（残り 7 技術）
 
-3. Web Audio API / AudioContext（リアルタイムサウンド）
+4. Canvas transformations（パーティクル効果）
 4. Canvas transformations（パーティクル効果）
 5. Performance API（フレーム監視）
 6. FullScreen API（全画面プレイ）

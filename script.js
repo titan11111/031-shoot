@@ -57,10 +57,55 @@ const bossBgm = new Audio('audio/Assault_of_enemy.mp3');
 bgm.loop = true;
 bossBgm.loop = true;
 
+// 【最新技術 #3】Web Audio API / AudioContext - リアルタイムサウンド
+let audioContext = null;
+let masterGain = null;
+
+function initAudioContext() {
+    if (!audioContext) {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContextClass();
+            masterGain = audioContext.createGain();
+            masterGain.connect(audioContext.destination);
+            masterGain.gain.value = 0.3;
+        } catch (e) {
+            console.warn('Web Audio API not supported');
+            audioContext = null;
+        }
+    }
+}
+
+// シンプルなシンセ音生成（効果音）
+function playTone(frequency, duration, type = 'sine', volume = 0.1) {
+    if (!audioContext) initAudioContext();
+    if (!audioContext) return;
+
+    try {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.frequency.value = frequency;
+        osc.type = type;
+
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    } catch (e) {
+        console.error('Tone playback failed:', e);
+    }
+}
+
 // ユーザー操作後にBGMを開始
 let audioInitialized = false;
 function initAudio() {
     if (!audioInitialized) {
+        initAudioContext();
         bgm.play().catch(() => {});
         bossBgm.play()
             .then(() => {
@@ -778,11 +823,13 @@ function checkCollisions() {
                         explosions.push(new Explosion(enemy.x, enemy.y));
                         gameState.score += enemy.type === 'boss' ? 100 : 10;
 
-                        // 【Vibration API】敵撃破時のフィードバック
+                        // 【Vibration API + Web Audio API】敵撃破時のフィードバック
                         if (enemy.type === 'boss') {
                             vibrate([100, 50, 100]);
+                            playTone(1200, 0.3, 'square', 0.15);
                         } else {
                             vibrate(30);
+                            playTone(1000, 0.1, 'sine', 0.1);
                         }
 
                         if (Math.random() < 0.3) {
@@ -809,11 +856,13 @@ function checkCollisions() {
                     explosions.push(new Explosion(enemy.x, enemy.y));
                     gameState.score += enemy.type === 'boss' ? 100 : 10;
 
-                    // 【Vibration API】敵撃破時のフィードバック
+                    // 【Vibration API + Web Audio API】敵撃破時のフィードバック
                     if (enemy.type === 'boss') {
                         vibrate([100, 50, 100]);
+                        playTone(1200, 0.3, 'square', 0.15);
                     } else {
                         vibrate(30);
+                        playTone(1000, 0.1, 'sine', 0.1);
                     }
 
                     if (Math.random() < 0.3) {
@@ -840,8 +889,9 @@ function checkCollisions() {
                     return;
                 }
 
-                // 【Vibration API】被弾時のフィードバック
+                // 【Vibration API + Web Audio API】被弾時のフィードバック
                 vibrate([50, 30, 50]);
+                playTone(400, 0.15, 'sine', 0.1);
 
                 if (player.shield > 0) {
                     player.shield--;
@@ -911,8 +961,13 @@ function checkCollisions() {
 
 function useBomb() {
     if (player.bombCount > 0) {
-        // 【Vibration API】ボム使用時のフィードバック
+        // 【Vibration API + Web Audio API】ボム使用時のフィードバック
         vibrate([100, 50, 100, 50, 100]);
+
+        // 上昇する3音のシーケンス
+        playTone(600, 0.1, 'sine', 0.1);
+        setTimeout(() => playTone(900, 0.1, 'sine', 0.12), 50);
+        setTimeout(() => playTone(1200, 0.15, 'square', 0.14), 100);
 
         player.bombCount--;
         let bossKilled = false;
