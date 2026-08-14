@@ -72,6 +72,15 @@ function initAudio() {
     }
 }
 
+// 【最新技術 #1】Vibration API - タップフィードバック
+function vibrate(pattern) {
+    if (navigator.vibrate) {
+        navigator.vibrate(pattern);
+    } else if (navigator.webkitVibrate) {
+        navigator.webkitVibrate(pattern);
+    }
+}
+
 // モバイル操作時の画面スクロールやズームを防止
 document.addEventListener('touchmove', (e) => {
     e.preventDefault();
@@ -798,6 +807,13 @@ function checkCollisions() {
                         explosions.push(new Explosion(enemy.x, enemy.y));
                         gameState.score += enemy.type === 'boss' ? 100 : 10;
 
+                        // 【Vibration API】敵撃破時のフィードバック
+                        if (enemy.type === 'boss') {
+                            vibrate([100, 50, 100]);
+                        } else {
+                            vibrate(30);
+                        }
+
                         if (Math.random() < 0.3) {
                             spawnPowerUp(enemy.x, enemy.y);
                         }
@@ -817,10 +833,17 @@ function checkCollisions() {
         enemies.forEach((enemy, enemyIndex) => {
             if (Math.abs(beam.x - enemy.x) < enemy.width/2 + beam.width/2) {
                 enemy.hp -= 2; // ビームは高威力
-                
+
                 if (enemy.hp <= 0) {
                     explosions.push(new Explosion(enemy.x, enemy.y));
                     gameState.score += enemy.type === 'boss' ? 100 : 10;
+
+                    // 【Vibration API】敵撃破時のフィードバック
+                    if (enemy.type === 'boss') {
+                        vibrate([100, 50, 100]);
+                    } else {
+                        vibrate(30);
+                    }
 
                     if (Math.random() < 0.3) {
                         spawnPowerUp(enemy.x, enemy.y);
@@ -845,6 +868,10 @@ function checkCollisions() {
                 if (player.invincible > 0) {
                     return;
                 }
+
+                // 【Vibration API】被弾時のフィードバック
+                vibrate([50, 30, 50]);
+
                 if (player.shield > 0) {
                     player.shield--;
                     explosions.push(new Explosion(player.x, player.y));
@@ -913,6 +940,9 @@ function checkCollisions() {
 
 function useBomb() {
     if (player.bombCount > 0) {
+        // 【Vibration API】ボム使用時のフィードバック
+        vibrate([100, 50, 100, 50, 100]);
+
         player.bombCount--;
         let bossKilled = false;
         enemies = enemies.filter(enemy => {
