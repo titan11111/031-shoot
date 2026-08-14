@@ -53,11 +53,28 @@
 
 **テスト状況**: ✅ 構文チェック OK
 
+### #4 Canvas Transformations （パーティクルエフェクト）
+**実装日**: 2026-08-14  
+**目的**: 爆発表現の強化、ビジュアル向上  
+**実装内容**:
+- Explosion クラスに rotate（回転）/ scale（スケール）/ translate（位置変換）を統合
+- `ctx.rotate()` でパーティクルを自由回転
+- `ctx.scale()` で時間に応じた縮小エフェクト
+- ボス撃破時: 20個パーティクル + 3色グラデーション
+- 通常敵: 8個パーティクル
+
+**効果**:
+- パーティクルの回転で動的感が向上
+- ボス撃破時に華やかな爆発表現
+- Canvas API の変換機能を有効活用
+
+**テスト状況**: ✅ 構文チェック OK
+
 ---
 
-## 次の実装予定（残り 7 技術）
+## 次の実装予定（残り 6 技術）
 
-4. Canvas transformations（パーティクル効果）
+5. Performance API（フレーム監視）
 4. Canvas transformations（パーティクル効果）
 5. Performance API（フレーム監視）
 6. FullScreen API（全画面プレイ）

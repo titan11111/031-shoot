@@ -664,18 +664,29 @@ class PowerUp {
 }
 
 // 爆発エフェクトクラス
+// 【最新技術 #4】Canvas Transformations - パーティクルエフェクト
 class Explosion {
-    constructor(x, y) {
+    constructor(x, y, isBoss = false) {
         this.x = x;
         this.y = y;
         this.particles = [];
-        for (let i = 0; i < 8; i++) {
+        const particleCount = isBoss ? 20 : 8;
+        const maxLife = isBoss ? 40 : 20;
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount;
+            const speed = 3 + Math.random() * 5;
             this.particles.push({
                 x: x,
                 y: y,
-                dx: (Math.random() - 0.5) * 8,
-                dy: (Math.random() - 0.5) * 8,
-                life: 20
+                dx: Math.cos(angle) * speed,
+                dy: Math.sin(angle) * speed,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.3,
+                scale: 1.0,
+                life: maxLife,
+                maxLife: maxLife,
+                color: isBoss ? ['#ff6600', '#ffaa00', '#ff00ff'][Math.floor(Math.random() * 3)] : '#ffaa00'
             });
         }
     }
@@ -684,6 +695,11 @@ class Explosion {
         this.particles.forEach(particle => {
             particle.x += particle.dx;
             particle.y += particle.dy;
+            particle.dx *= 0.98; // 摩擦
+            particle.dy *= 0.98;
+            particle.rotation += particle.rotationSpeed;
+            // スケール減衰
+            particle.scale = (particle.life / particle.maxLife) * 1.2;
             particle.life--;
         });
         this.particles = this.particles.filter(particle => particle.life > 0);
@@ -692,9 +708,17 @@ class Explosion {
     draw() {
         this.particles.forEach(particle => {
             ctx.save();
-            ctx.globalAlpha = particle.life / 20;
-            ctx.fillStyle = '#ffaa00';
-            ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
+
+            // 【Canvas Transformation】回転・スケーリング・位置変換
+            ctx.translate(particle.x, particle.y);
+            ctx.rotate(particle.rotation);
+            ctx.scale(particle.scale, particle.scale);
+
+            // 【Canvas Property】アルファ・色設定
+            ctx.globalAlpha = particle.life / particle.maxLife;
+            ctx.fillStyle = particle.color;
+            ctx.fillRect(-2, -2, 4, 4);
+
             ctx.restore();
         });
     }
@@ -820,7 +844,8 @@ function checkCollisions() {
                     }
                     
                     if (enemy.hp <= 0) {
-                        explosions.push(new Explosion(enemy.x, enemy.y));
+                        // 【Canvas Transformations】ボス撃破時の豪華な爆発
+                        explosions.push(new Explosion(enemy.x, enemy.y, enemy.type === 'boss'));
                         gameState.score += enemy.type === 'boss' ? 100 : 10;
 
                         // 【Vibration API + Web Audio API】敵撃破時のフィードバック
@@ -853,7 +878,8 @@ function checkCollisions() {
                 enemy.hp -= 2; // ビームは高威力
 
                 if (enemy.hp <= 0) {
-                    explosions.push(new Explosion(enemy.x, enemy.y));
+                    // 【Canvas Transformations】ボス撃破時の豪華な爆発
+                    explosions.push(new Explosion(enemy.x, enemy.y, enemy.type === 'boss'));
                     gameState.score += enemy.type === 'boss' ? 100 : 10;
 
                     // 【Vibration API + Web Audio API】敵撃破時のフィードバック
