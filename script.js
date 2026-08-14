@@ -152,6 +152,42 @@ let touchButtons = {
     shoot: false
 };
 
+// 【最新技術 #2】Pointer Events - マルチタッチ・統一操作
+function setupPointerEventHandlers() {
+    const buttons = [
+        { id: 'leftBtn', key: 'left' },
+        { id: 'rightBtn', key: 'right' },
+        { id: 'upBtn', key: 'up' },
+        { id: 'downBtn', key: 'down' },
+        { id: 'shootBtn', key: 'shoot' }
+    ];
+
+    buttons.forEach(({ id, key }) => {
+        const btn = document.getElementById(id);
+        btn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            touchButtons[key] = true;
+            if (key === 'shoot' && player.shootCooldown <= 0) {
+                shoot();
+                player.shootCooldown = player.shotDelay;
+            }
+        }, { passive: false });
+        btn.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            touchButtons[key] = false;
+        }, { passive: false });
+        btn.addEventListener('pointercancel', () => {
+            touchButtons[key] = false;
+        });
+    });
+
+    bombBtn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        useBomb();
+    }, { passive: false });
+}
+setupPointerEventHandlers();
+
 // イベントリスナー設定
 document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
@@ -166,71 +202,6 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
     keys[e.code] = false;
 });
-
-// タッチボタンの設定
-document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchButtons.left = true;
-}, { passive: false });
-document.getElementById('leftBtn').addEventListener('touchend', (e) => {
-    e.preventDefault();
-    touchButtons.left = false;
-}, { passive: false });
-
-document.getElementById('rightBtn').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchButtons.right = true;
-}, { passive: false });
-document.getElementById('rightBtn').addEventListener('touchend', (e) => {
-    e.preventDefault();
-    touchButtons.right = false;
-}, { passive: false });
-
-document.getElementById('upBtn').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchButtons.up = true;
-}, { passive: false });
-document.getElementById('upBtn').addEventListener('touchend', (e) => {
-    e.preventDefault();
-    touchButtons.up = false;
-}, { passive: false });
-
-document.getElementById('downBtn').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchButtons.down = true;
-}, { passive: false });
-document.getElementById('downBtn').addEventListener('touchend', (e) => {
-    e.preventDefault();
-    touchButtons.down = false;
-}, { passive: false });
-
-document.getElementById('shootBtn').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchButtons.shoot = true;
-    if (player.shootCooldown <= 0) {
-        shoot();
-        player.shootCooldown = player.shotDelay;
-    }
-}, { passive: false });
-document.getElementById('shootBtn').addEventListener('touchend', (e) => {
-    e.preventDefault();
-    touchButtons.shoot = false;
-}, { passive: false });
-
-bombBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    useBomb();
-}, { passive: false });
-
-// マウスボタンの設定
-document.getElementById('leftBtn').addEventListener('mousedown', () => touchButtons.left = true);
-document.getElementById('leftBtn').addEventListener('mouseup', () => touchButtons.left = false);
-document.getElementById('rightBtn').addEventListener('mousedown', () => touchButtons.right = true);
-document.getElementById('rightBtn').addEventListener('mouseup', () => touchButtons.right = false);
-document.getElementById('upBtn').addEventListener('mousedown', () => touchButtons.up = true);
-document.getElementById('upBtn').addEventListener('mouseup', () => touchButtons.up = false);
-document.getElementById('downBtn').addEventListener('mousedown', () => touchButtons.down = true);
-document.getElementById('downBtn').addEventListener('mouseup', () => touchButtons.down = false);
 document.getElementById('shootBtn').addEventListener('mousedown', (e) => {
     e.preventDefault();
     touchButtons.shoot = true;

@@ -20,9 +20,26 @@
 
 ---
 
-## 次の実装予定（残り 9 技術）
+### #2 Pointer Events （マルチタッチ・統一操作）
+**実装日**: 2026-08-14  
+**目的**: Touch + Mouse イベントの統一、マルチポイント対応  
+**実装内容**:
+- `setupPointerEventHandlers()` 関数で全ボタンを Pointer Events に統一
+- `pointerdown` / `pointerup` / `pointercancel` で統一処理
+- Touch + Mouse + Pen（Apple Pencil など）をすべて同じコードで処理
 
-2. Pointer Events（マルチタッチ対応）
+**効果**:
+- コード削減（重複イベントリスナーを排除）
+- マルチポイント対応可能（複数の指追跡）
+- ペンデバイス（タッチペン）対応
+- ブラウザ互換性向上
+
+**テスト状況**: ✅ 構文チェック OK
+
+---
+
+## 次の実装予定（残り 8 技術）
+
 3. Web Audio API / AudioContext（リアルタイムサウンド）
 4. Canvas transformations（パーティクル効果）
 5. Performance API（フレーム監視）
