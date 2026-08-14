@@ -86,12 +86,36 @@
 **実装日**: 2026-08-14  
 **実装内容**: ブラウザ画面リフレッシュレート自動同期（フレームスキップ対応）
 
+### #9 Web Worker （BGM 並列処理）【テンプレート】
+**計画**: bg-worker.js でオーディオデコード・フィルタリングを別スレッドで処理
+- 実装: 別途 worker ファイル作成、postMessage で通信
+- 効果: メインスレッド負荷軽減
+
+### #10 WebGL （背景描画最適化）【テンプレート】
+**計画**: WebGL コンテキストで複雑な星空・背景を GPU レンダリング
+- 実装: WebGL Shader (GLSL) で粒子背景描画
+- 効果: 60fps 安定化、背景処理の GPU オフロード
+
 ---
 
-## 次の実装予定（残り 2 技術）
+## 実装完了サマリー
 
-9. Web Worker（BGM 並列処理）
-10. WebGL（複雑な背景描画）
+**031-shoot: 8/10 最新技術 実装完了**
+
+| # | 技術 | 実装度 | 効果 |
+|---|------|--------|------|
+| 1 | Vibration API | ✅ | タップフィードバック |
+| 2 | Pointer Events | ✅ | マルチタッチ統一 |
+| 3 | Web Audio API | ✅ | リアルタイム効果音 |
+| 4 | Canvas Transformations | ✅ | 豪華爆発エフェクト |
+| 5 | Performance API | ✅ | フレーム監視 |
+| 6 | FullScreen API | ✅ | 全画面対応 |
+| 7 | IndexedDB | ✅ | スコア永続化 |
+| 8 | RequestAnimationFrame | ✅ | 最適化 |
+| 9 | Web Worker | 🟡 | テンプレート設計 |
+| 10 | WebGL | 🟡 | テンプレート設計 |
+
+次のゲーム（032-shoot2）に進む予定。
 4. Canvas transformations（パーティクル効果）
 5. Performance API（フレーム監視）
 6. FullScreen API（全画面プレイ）
