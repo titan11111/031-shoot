@@ -2,7 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000428">
     <title>ビームシューターゲーム</title>
     <link rel="stylesheet" href="style.css">
     <meta property="og:title" content="ビームシューターゲーム">
@@ -13,69 +16,80 @@
 </head>
 <body>
     <div id="gameContainer">
-        <div id="gameTitle">🚀 ビームシューター 🚀</div>
-        <div id="gameInfo">
-            <span id="score">スコア: 0</span>
-            <span id="highScore">ハイスコア: 0</span>
-            <span id="life">ライフ: ❤️❤️❤️</span>
-            <span id="power">パワー: 1</span>
-            <span id="shield">バリア: 0</span>
-            <span id="stage">ステージ: 1</span>
-        </div>
-        <canvas id="gameCanvas" width="480" height="720"></canvas>
-        <div id="gameControls">
-            <div id="touchControls">
-                <div id="moveControls">
-                    <button id="leftBtn">←</button>
-                    <button id="rightBtn">→</button>
-                    <button id="upBtn">↑</button>
-                    <button id="downBtn">↓</button>
+        <div id="playArea">
+            <canvas id="gameCanvas" width="480" height="720"></canvas>
+
+            <header id="hud">
+                <div class="hud-row">
+                    <span id="score">スコア 0</span>
+                    <span id="highScore">HI 0</span>
+                    <span id="stage">ST 1</span>
+                    <button type="button" id="muteBtn" class="game-btn hud-icon" aria-label="ミュート">🔊</button>
                 </div>
-                <div id="fireControls">
-                    <button id="shootBtn">🔫</button>
-                    <div id="bombContainer" class="hidden">
-                        <button id="bombBtn">💣</button>
-                        <div id="bombCountDisplay">0</div>
-                    </div>
+                <div class="hud-row hud-row-sub">
+                    <span id="life">❤️❤️❤️</span>
+                    <span id="power">P 1</span>
+                    <span id="shield">バリア 0</span>
                 </div>
+            </header>
+
+            <div id="startScreen">
+                <h1 id="gameTitle">🚀 ビームシューター</h1>
+                <h2>武器・アイテム</h2>
+                <ul id="itemList">
+                    <li><span class="colorBox" style="background:red;"></span><span class="item-text"><b>ショット強化</b><small>弾が強くなる</small></span></li>
+                    <li><span class="colorBox" style="background:orange;"></span><span class="item-text"><b>ワイドショット</b><small>弾が横に広がる</small></span></li>
+                    <li><span class="colorBox" style="background:purple;"></span><span class="item-text"><b>ホーミング</b><small>敵を追尾する</small></span></li>
+                    <li><span class="colorBox" style="background:green;"></span><span class="item-text"><b>ライフ回復</b><small>ライフ+1</small></span></li>
+                    <li><span class="colorBox" style="background:blue;"></span><span class="item-text"><b>バリア</b><small>1回防御</small></span></li>
+                    <li><span class="colorBox" style="background:black;"></span><span class="item-text"><b>ボム追加</b><small>ボム+1</small></span></li>
+                    <li><span class="colorBox" style="background:silver;"></span><span class="item-text"><b>サテライト</b><small>サポート機</small></span></li>
+                    <li><span class="colorBox" style="background:deepskyblue;"></span><span class="item-text"><b>連射アップ</b><small>射撃が速くなる</small></span></li>
+                    <li><span class="colorBox" style="background:magenta;"></span><span class="item-text"><b>貫通弾</b><small>敵を貫通</small></span></li>
+                    <li><span class="colorBox" style="background:pink;"></span><span class="item-text"><b>アイテム吸引</b><small>周囲を引き寄せ</small></span></li>
+                    <li><span class="colorBox" style="background:darkviolet;"></span><span class="item-text"><b>スリープ</b><small>敵を一時停止</small></span></li>
+                    <li><span class="colorBox" style="background:aqua;"></span><span class="item-text"><b>移動アップ</b><small>移動が速くなる</small></span></li>
+                    <li><span class="colorBox" style="background:lavenderblush; border:1px solid #000;"></span><span class="item-text"><b>敵スロー</b><small>敵が遅くなる</small></span></li>
+                </ul>
+                <button type="button" id="startBtn" class="game-btn">TAP TO START</button>
+            </div>
+            <div id="gameOver" class="hidden overlay-panel">
+                <h2>ゲームオーバー</h2>
+                <p>最終スコア: <span id="finalScore">0</span></p>
+                <button type="button" id="restartBtn" class="game-btn">もう一度プレイ</button>
+            </div>
+            <div id="gameClear" class="hidden overlay-panel">
+                <h2>ゲームクリア</h2>
+                <p>最終スコア: <span id="clearScore">0</span></p>
+                <p>ハイスコア: <span id="clearHighScore">0</span></p>
+                <button type="button" id="clearRestartBtn" class="game-btn">もう一度プレイ</button>
+            </div>
+            <div id="pauseScreen" class="hidden overlay-panel">
+                <h2>ポーズ</h2>
+                <p>Pキーまたは画面をタップして再開</p>
+                <button type="button" id="resumeBtn" class="game-btn">再開</button>
             </div>
         </div>
-        <div id="startScreen">
-            <h2>アイテム説明</h2>
-            <ul id="itemList">
-                <li><span class="colorBox" style="background:red;"></span>ショットレベルアップ: ショットが強化される</li>
-                <li><span class="colorBox" style="background:orange;"></span>ワイドショット: 弾が横に広がる</li>
-                <li><span class="colorBox" style="background:purple;"></span>ホーミングショット: 弾が敵を追尾する</li>
-                <li><span class="colorBox" style="background:green;"></span>ライフ回復: ライフを回復する</li>
-                <li><span class="colorBox" style="background:blue;"></span>バリア追加: 一度だけ攻撃を防ぐ</li>
-                <li><span class="colorBox" style="background:black;"></span>ボム追加: ボムストックが増える</li>
-                <li><span class="colorBox" style="background:silver;"></span>サテライト追加: サポート機が追加される</li>
-                <li><span class="colorBox" style="background:deepskyblue;"></span>連射速度アップ: 射撃間隔が短くなる</li>
-                <li><span class="colorBox" style="background:magenta;"></span>貫通弾: 弾が敵を貫通する</li>
-                <li><span class="colorBox" style="background:pink;"></span>アイテム吸引: 周囲のアイテムを引き寄せる</li>
-                <li><span class="colorBox" style="background:darkviolet;"></span>スリープミサイル: 敵を一時的に停止させる</li>
-                <li><span class="colorBox" style="background:aqua;"></span>移動速度アップ: 移動速度が上がる</li>
-                <li><span class="colorBox" style="background:lavenderblush; border:1px solid #000;"></span>敵スロー: 敵の動きが遅くなる</li>
-            </ul>
-            <button id="startBtn">ゲームスタート</button>
-        </div>
-        <div id="gameOver" class="hidden">
-            <h2>ゲームオーバー</h2>
-            <p>最終スコア: <span id="finalScore">0</span></p>
-            <button id="restartBtn">もう一度プレイ</button>
-        </div>
-        <div id="gameClear" class="hidden">
-            <h2>ゲームクリア</h2>
-            <p>最終スコア: <span id="clearScore">0</span></p>
-            <p>ハイスコア: <span id="clearHighScore">0</span></p>
-            <button id="clearRestartBtn">もう一度プレイ</button>
-        </div>
-        <div id="pauseScreen" class="hidden">
-            <h2>ポーズ</h2>
-            <p>Pキーまたは画面をタップして再開</p>
-            <button id="resumeBtn">再開</button>
-        </div>
+
+        <footer id="gameControls">
+            <div id="touchControls">
+                <div id="moveControls">
+                    <button type="button" id="upBtn" class="game-btn pad-btn">↑</button>
+                    <button type="button" id="leftBtn" class="game-btn pad-btn">←</button>
+                    <button type="button" id="rightBtn" class="game-btn pad-btn">→</button>
+                    <button type="button" id="downBtn" class="game-btn pad-btn">↓</button>
+                </div>
+                <div id="fireControls">
+                    <div id="bombContainer" class="hidden">
+                        <button type="button" id="bombBtn" class="game-btn action-btn">💣<small>BOMB</small></button>
+                        <div id="bombCountDisplay">0</div>
+                    </div>
+                    <button type="button" id="shootBtn" class="game-btn action-btn">🔫<small>BEAM</small></button>
+                </div>
+            </div>
+        </footer>
     </div>
+    <script src="sprites.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

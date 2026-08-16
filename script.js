@@ -24,6 +24,8 @@ const bombCountDisplay = document.getElementById('bombCountDisplay');
 const bombBtn = document.getElementById('bombBtn');
 const pauseScreen = document.getElementById('pauseScreen');
 const resumeBtn = document.getElementById('resumeBtn');
+const muteBtn = document.getElementById('muteBtn');
+const playArea = document.getElementById('playArea');
 
 const STAGE_DURATION = 60 * 60; // 1 minute at 60 FPS
 const MAX_SATELLITES = 4; // Maximum number of support satellites
@@ -115,6 +117,25 @@ function initAudio() {
             .catch(() => {});
         audioInitialized = true;
     }
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume().catch(() => {});
+    }
+    applyMute();
+}
+
+let muted = localStorage.getItem('beamShooterMuted') === '1';
+function applyMute() {
+    bgm.muted = muted;
+    bossBgm.muted = muted;
+    if (masterGain) masterGain.gain.value = muted ? 0 : 0.3;
+    if (muteBtn) muteBtn.textContent = muted ? '🔇' : '🔊';
+}
+applyMute();
+
+function toggleMute() {
+    muted = !muted;
+    localStorage.setItem('beamShooterMuted', muted ? '1' : '0');
+    applyMute();
 }
 
 // 【最新技術 #1】Vibration API - タップフィードバック
@@ -128,7 +149,26 @@ function vibrate(pattern) {
 
 // モバイル操作時の画面スクロールやズームを防止
 document.addEventListener('touchmove', (e) => {
+    if (e.target.closest('[data-scrollable]')) return;
     e.preventDefault();
+}, { passive: false });
+document.addEventListener('selectstart', (e) => e.preventDefault());
+document.addEventListener('dragstart', (e) => e.preventDefault());
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('dblclick', (e) => e.preventDefault());
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+    }
+    lastTouchEnd = now;
+}, { passive: false });
+let lastTap = 0;
+document.addEventListener('touchstart', (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) e.preventDefault();
+    lastTap = now;
 }, { passive: false });
 
 // 【最新技術 #7】IndexedDB - スコア永続化
@@ -231,6 +271,10 @@ function setupPointerEventHandlers() {
         const btn = document.getElementById(id);
         btn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            btn.setPointerCapture(e.pointerId);
+            btn.classList.add('is-pressed');
+            vibrate(15);
+            initAudio();
             touchButtons[key] = true;
             if (key === 'shoot' && player.shootCooldown <= 0) {
                 shoot();
@@ -239,19 +283,43 @@ function setupPointerEventHandlers() {
         }, { passive: false });
         btn.addEventListener('pointerup', (e) => {
             e.preventDefault();
+            btn.classList.remove('is-pressed');
             touchButtons[key] = false;
         }, { passive: false });
         btn.addEventListener('pointercancel', () => {
+            btn.classList.remove('is-pressed');
             touchButtons[key] = false;
         });
     });
 
     bombBtn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        bombBtn.setPointerCapture(e.pointerId);
+        bombBtn.classList.add('is-pressed');
+        vibrate(15);
+        initAudio();
         useBomb();
     }, { passive: false });
+    bombBtn.addEventListener('pointerup', () => bombBtn.classList.remove('is-pressed'));
+    bombBtn.addEventListener('pointercancel', () => bombBtn.classList.remove('is-pressed'));
 }
 setupPointerEventHandlers();
+
+function bindTap(el, handler) {
+    if (!el) return;
+    const fire = (e) => {
+        e.preventDefault();
+        el.classList.add('is-pressed');
+        vibrate(15);
+        initAudio();
+        handler(e);
+    };
+    const release = () => el.classList.remove('is-pressed');
+    el.addEventListener('pointerdown', fire);
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('pointerleave', release);
+}
 
 // イベントリスナー設定
 document.addEventListener('keydown', (e) => {
@@ -267,43 +335,18 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
     keys[e.code] = false;
 });
-document.getElementById('shootBtn').addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    touchButtons.shoot = true;
-    if (player.shootCooldown <= 0) {
-        shoot();
-        player.shootCooldown = player.shotDelay;
-    }
-});
-document.getElementById('shootBtn').addEventListener('mouseup', (e) => {
-    e.preventDefault();
-    touchButtons.shoot = false;
-});
-
-bombBtn.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    useBomb();
-});
-
-// リスタートボタン
-restartBtn.addEventListener('click', restartGame);
-clearRestartBtn.addEventListener('click', restartGame);
-startBtn.addEventListener('click', startGame);
-resumeBtn.addEventListener('click', togglePause);
-pauseScreen.addEventListener('click', (e) => {
+bindTap(startBtn, startGame);
+bindTap(restartBtn, restartGame);
+bindTap(clearRestartBtn, restartGame);
+bindTap(resumeBtn, togglePause);
+bindTap(muteBtn, toggleMute);
+pauseScreen.addEventListener('pointerdown', (e) => {
     if (e.target === pauseScreen) {
         togglePause();
     }
 });
-
-// 【最新技術 #6】FullScreen API - 全画面プレイ対応
-gameContainer.addEventListener('dblclick', () => {
-    if (!document.fullscreenElement) {
-        gameContainer.requestFullscreen?.() || gameContainer.webkitRequestFullscreen?.();
-    } else {
-        document.exitFullscreen?.();
-    }
-});
+document.addEventListener('pointerdown', () => initAudio(), { once: true });
+document.addEventListener('keydown', () => initAudio(), { once: true });
 
 // 弾丸クラス
 class Bullet {
@@ -351,6 +394,10 @@ class Bullet {
     }
 
     draw() {
+        if (typeof Sprites !== 'undefined') {
+            Sprites.drawBullet(ctx, this);
+            return;
+        }
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
     }
@@ -524,37 +571,30 @@ class Enemy {
 
     draw() {
         if (this.type === 'boss') {
-            // ボス敵
-            if (this.img && this.img.loaded) {
+            if (typeof Sprites !== 'undefined') {
+                Sprites.drawBoss(ctx, this, gameState.frameCount);
+            } else if (this.img && this.img.loaded) {
                 ctx.drawImage(this.img, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-                ctx.save();
-                ctx.globalCompositeOperation = 'source-atop';
-                ctx.globalAlpha = 0.6;
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-                ctx.restore();
             } else {
                 ctx.fillStyle = this.color;
                 ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
             }
-            if (gameState.stage === 6) {
-                ctx.strokeStyle = '#ff0000';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+            if (typeof Sprites !== 'undefined') {
+                Sprites.drawHpBar(ctx, this);
+            } else {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2 - 10, this.width, 4);
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(
+                    this.x - this.width / 2,
+                    this.y - this.height / 2 - 10,
+                    this.width * (this.hp / this.maxHp),
+                    4
+                );
             }
-
-            // HPバー
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2 - 10, this.width, 4);
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(
-                this.x - this.width / 2,
-                this.y - this.height / 2 - 10,
-                this.width * (this.hp / this.maxHp),
-                4
-            );
+        } else if (typeof Sprites !== 'undefined') {
+            Sprites.drawEnemy(ctx, this);
         } else {
-            // 通常敵
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
             ctx.strokeStyle = '#000000';
@@ -1207,16 +1247,12 @@ function nextStage() {
 
 // UI更新
 function updateUI() {
-    scoreElement.textContent = `スコア: ${gameState.score}`;
-    const highScore = getHighScore();
-    highScoreElement.textContent = `ハイスコア: ${highScore}`;
-
-    const hearts = '❤️'.repeat(gameState.life);
-    lifeElement.textContent = `ライフ: ${hearts}`;
-
-    powerElement.textContent = `パワー: ${gameState.power}${gameState.power >= 3 ? ' (MAX)' : ''}`;
-    shieldElement.textContent = `バリア: ${player.shield}`;
-    stageElement.textContent = `ステージ: ${gameState.stage}`;
+    scoreElement.textContent = `スコア ${gameState.score}`;
+    highScoreElement.textContent = `HI ${getHighScore()}`;
+    lifeElement.textContent = '❤️'.repeat(gameState.life) || '💔';
+    powerElement.textContent = `P ${gameState.power}${gameState.power >= 3 ? ' MAX' : ''}`;
+    shieldElement.textContent = `バリア ${player.shield}`;
+    stageElement.textContent = `ST ${gameState.stage}`;
     if (player.bombCount > 0) {
         bombContainer.classList.remove('hidden');
         bombCountDisplay.textContent = player.bombCount;
@@ -1241,41 +1277,26 @@ function draw() {
 
     // プレイヤー描画（無敵時間の点滅エフェクト）
     const invincibleAlpha = player.invincible > 0 ? (Math.floor(gameState.frameCount / 5) % 2 === 0 ? 0.3 : 1.0) : 1.0;
-    ctx.save();
-    ctx.globalAlpha = invincibleAlpha;
-    ctx.fillStyle = '#00ffcc';
-    ctx.fillRect(player.x - player.width/2, player.y - player.height/2, player.width, player.height);
-
-    if (player.shield > 0) {
-        ctx.strokeStyle = '#00ffff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.width, 0, Math.PI * 2);
-        ctx.stroke();
+    if (typeof Sprites !== 'undefined') {
+        Sprites.drawPlayer(ctx, player, gameState.frameCount, {
+            alpha: invincibleAlpha,
+            shielded: player.shield > 0,
+            invincible: player.invincible > 0
+        });
+        satellites.forEach(sat => Sprites.drawSatellite(ctx, sat, gameState.frameCount));
+    } else {
+        ctx.save();
+        ctx.globalAlpha = invincibleAlpha;
+        ctx.fillStyle = '#00ffcc';
+        ctx.fillRect(player.x - player.width/2, player.y - player.height/2, player.width, player.height);
+        ctx.restore();
+        satellites.forEach(sat => {
+            ctx.fillStyle = '#cccccc';
+            ctx.beginPath();
+            ctx.arc(sat.x, sat.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+        });
     }
-
-    // 機体の詳細
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(player.x - 2, player.y - player.height/2, 4, 10);
-    
-    // 無敵時間中の光るエフェクト
-    if (player.invincible > 0) {
-        ctx.strokeStyle = '#ffff00';
-        ctx.lineWidth = 3;
-        ctx.globalAlpha = 0.5;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.width * 1.2, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-    ctx.restore();
-
-    // サテライト描画
-    satellites.forEach(sat => {
-        ctx.fillStyle = '#cccccc';
-        ctx.beginPath();
-        ctx.arc(sat.x, sat.y, 8, 0, Math.PI * 2);
-        ctx.fill();
-    });
 
     // 弾丸描画
     bullets.forEach(bullet => bullet.draw());
@@ -1376,22 +1397,20 @@ function gameLoop() {
 }
 
 // ゲーム開始
-updateUI(); // 初期ハイスコア表示
+updateUI();
 gameLoop();
-bgm.play().catch(() => {});
 
-// 画面サイズに合わせてゲーム全体をスケーリング
 function resizeGame() {
-    gameContainer.style.transform = 'none';
-    const rect = gameContainer.getBoundingClientRect();
-    const scale = Math.min(
-        window.innerWidth / rect.width,
-        window.innerHeight / rect.height,
-        1
-    );
-    gameContainer.style.transform = `scale(${scale})`;
+    if (!playArea) return;
+    const rect = playArea.getBoundingClientRect();
+    canvas.style.width = Math.floor(Math.max(120, rect.width)) + 'px';
+    canvas.style.height = Math.floor(Math.max(160, rect.height)) + 'px';
 }
 
 window.addEventListener('resize', resizeGame);
-window.addEventListener('orientationchange', resizeGame);
+window.addEventListener('orientationchange', () => setTimeout(resizeGame, 120));
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeGame);
+}
 resizeGame();
+requestAnimationFrame(resizeGame);
