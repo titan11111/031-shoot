@@ -70,7 +70,11 @@ function initAudioContext() {
     if (!audioContext) {
         try {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            audioContext = new AudioContextClass();
+            try {
+                audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+            } catch (_) {
+                audioContext = new AudioContextClass();
+            }
             masterGain = audioContext.createGain();
             masterGain.connect(audioContext.destination);
             masterGain.gain.value = 0.3;
@@ -337,12 +341,14 @@ function playControlTick() {
 }
 
 function updateStickFromPointer(e) {
+    const samples = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [];
+    const pointer = samples.length ? samples[samples.length - 1] : e;
     const pad = document.getElementById('moveControls');
     const rect = pad.getBoundingClientRect();
     const halfW = rect.width / 2;
     const halfH = rect.height / 2;
-    const rawX = (e.clientX - (rect.left + halfW)) / Math.max(1, halfW);
-    const rawY = (e.clientY - (rect.top + halfH)) / Math.max(1, halfH);
+    const rawX = (pointer.clientX - (rect.left + halfW)) / Math.max(1, halfW);
+    const rawY = (pointer.clientY - (rect.top + halfH)) / Math.max(1, halfH);
     const magnitude = Math.hypot(rawX, rawY);
     const deadZone = 0.16;
     if (magnitude <= deadZone) {
@@ -436,6 +442,36 @@ function setupPointerEventHandlers() {
 }
 setupPointerEventHandlers();
 setupAnalogPad();
+
+// Gamepad API: Bluetooth/MFiコントローラの標準マッピング
+let gamepadInput = { x: 0, y: 0, shoot: false };
+let previousGamepadButtons = [];
+
+function pollGamepad() {
+    gamepadInput = { x: 0, y: 0, shoot: false };
+    if (typeof navigator.getGamepads !== 'function') return;
+    const gamepad = Array.from(navigator.getGamepads()).find(Boolean);
+    if (!gamepad) return;
+    const deadZone = 0.18;
+    const axisX = Math.abs(gamepad.axes[0] || 0) > deadZone ? gamepad.axes[0] : 0;
+    const axisY = Math.abs(gamepad.axes[1] || 0) > deadZone ? gamepad.axes[1] : 0;
+    const dpadX = (gamepad.buttons[15]?.pressed ? 1 : 0) - (gamepad.buttons[14]?.pressed ? 1 : 0);
+    const dpadY = (gamepad.buttons[13]?.pressed ? 1 : 0) - (gamepad.buttons[12]?.pressed ? 1 : 0);
+    gamepadInput.x = dpadX || axisX;
+    gamepadInput.y = dpadY || axisY;
+    gamepadInput.shoot = Boolean(gamepad.buttons[0]?.pressed || gamepad.buttons[2]?.pressed);
+
+    const bombPressed = Boolean(gamepad.buttons[1]?.pressed);
+    const pausePressed = Boolean(gamepad.buttons[9]?.pressed);
+    if (bombPressed && !previousGamepadButtons[1]) useBomb();
+    if (pausePressed && !previousGamepadButtons[9]) togglePause();
+    previousGamepadButtons = gamepad.buttons.map(button => button.pressed);
+}
+
+window.addEventListener('gamepaddisconnected', () => {
+    gamepadInput = { x: 0, y: 0, shoot: false };
+    previousGamepadButtons = [];
+});
 
 function bindTap(el, handler) {
     if (!el) return;
@@ -1160,6 +1196,7 @@ function triggerBossDefeatEffects(enemy) {
 
 // プレイヤーの移動
 function updatePlayer() {
+    pollGamepad();
     // アナログパッドとキー入力を同じ加速モデルで処理する
     let inputX = touchStick.active ? touchStick.x : 0;
     let inputY = touchStick.active ? touchStick.y : 0;
@@ -1167,6 +1204,8 @@ function updatePlayer() {
     if (keys['ArrowRight']) inputX += 1;
     if (keys['ArrowUp']) inputY -= 1;
     if (keys['ArrowDown']) inputY += 1;
+    inputX += gamepadInput.x;
+    inputY += gamepadInput.y;
     const inputLength = Math.hypot(inputX, inputY);
     if (inputLength > 1) {
         inputX /= inputLength;
@@ -1203,7 +1242,7 @@ function updatePlayer() {
         }
     }
 
-    if ((keys['Space'] || touchButtons.shoot) && player.shootCooldown <= 0) {
+    if ((keys['Space'] || touchButtons.shoot || gamepadInput.shoot) && player.shootCooldown <= 0) {
         shoot();
         player.shootCooldown = player.shotDelay;
     }
@@ -1957,16 +1996,10 @@ function draw() {
 // 【最新技術 #5】Performance API - フレーム監視
 let frameTimings = [];
 let lastTime = performance.now();
+let updateAccumulator = 0;
+const FIXED_STEP_MS = 1000 / 60;
 
-// メインゲームループ
-function gameLoop() {
-    // パフォーマンス計測
-    const currentTime = performance.now();
-    const frameTime = currentTime - lastTime;
-    lastTime = currentTime;
-    frameTimings.push(frameTime);
-    if (frameTimings.length > 60) frameTimings.shift(); // 直近60フレーム保持
-
+function updateGame() {
     if (gameState.playing && !gameState.paused) {
         gameState.frameCount++;
         if (!gameState.bossActive) {
@@ -2029,11 +2062,20 @@ function gameLoop() {
         checkCollisions();
         updateUI();
     }
-    
+}
+
+// 60Hz/120Hz端末で同じ速度を保つ固定タイムステップ
+function gameLoop(timestamp = performance.now()) {
+    const frameTime = Math.min(100, Math.max(0, timestamp - lastTime));
+    lastTime = timestamp;
+    frameTimings.push(frameTime);
+    if (frameTimings.length > 60) frameTimings.shift();
+    updateAccumulator += frameTime;
+    while (updateAccumulator >= FIXED_STEP_MS) {
+        updateGame();
+        updateAccumulator -= FIXED_STEP_MS;
+    }
     draw();
-    // 【最新技術 #8】RequestAnimationFrame 最適化
-    // ブラウザの画面リフレッシュレートに同期して呼び出し（通常60fps）
-    // 自動フレームスキップ対応
     requestAnimationFrame(gameLoop);
 }
 

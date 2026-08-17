@@ -1,4 +1,4 @@
-/* ビームシューターゲーム - iOS 75/25 レイアウト */
+/* ビームシューターゲーム - iOS 70/30 レイアウト */
 
 *, *::before, *::after {
   margin: 0;
@@ -45,10 +45,10 @@ body {
   flex-direction: column;
 }
 
-/* 上75%: プレイ画面（HUDは重ねて領域を奪わない） */
+/* 上70%: プレイ画面（HUDは重ねて領域を奪わない） */
 #playArea {
   position: relative;
-  flex: 1 1 75%;
+  flex: 1 1 70%;
   width: 100%;
   min-height: 0;
   z-index: 1;
@@ -111,14 +111,14 @@ body {
   font-size: 18px;
 }
 
-/* 下25%: コントロールパネル（プレイ画面と分離） */
+/* 下30%: コントロールパネル（プレイ画面と分離） */
 #gameControls {
-  --ctrl-h: 25dvh;
+  --ctrl-h: 30dvh;
   --ctrl-inner: calc(var(--ctrl-h) - env(safe-area-inset-bottom, 0px) - 12px);
-  --pad-size: clamp(40px, calc(var(--ctrl-inner) / 3.25), 56px);
+  --pad-size: clamp(48px, calc(var(--ctrl-inner) / 3.25), 68px);
   position: relative;
-  flex: 0 0 25%;
-  height: 25%;
+  flex: 0 0 30%;
+  height: 30%;
   min-height: 0;
   z-index: 20;
   display: flex;
@@ -197,8 +197,9 @@ body {
 
 .game-btn:active,
 .game-btn.is-pressed {
-  transform: scale(0.92);
+  transform: scale(0.9) translateY(2px);
   opacity: 0.88;
+  filter: brightness(1.25);
 }
 
 .game-btn:disabled {
@@ -210,8 +211,8 @@ body {
 .action-btn {
   width: var(--pad-size);
   height: var(--pad-size);
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 48px;
+  min-height: 48px;
   border-radius: 12px;
   background: linear-gradient(145deg, rgba(0, 180, 160, 0.7), rgba(0, 90, 80, 0.75));
   border: 1px solid rgba(0, 255, 204, 0.45);
