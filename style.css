@@ -32,6 +32,11 @@ body {
   color: #fff;
   position: fixed;
   inset: 0;
+  display: flex;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(14, 75, 110, 0.45), transparent 34%),
+    linear-gradient(135deg, #01030f, #061528 48%, #01030f);
 }
 
 #gameContainer {
@@ -43,6 +48,19 @@ body {
   background: #000011;
   display: flex;
   flex-direction: column;
+}
+
+/* PCでは縦型ゲーム筐体として中央表示。スマホは全幅のまま */
+@media (min-width: 700px) {
+  #gameContainer {
+    left: 50%;
+    right: auto;
+    width: min(560px, 100vw);
+    transform: translateX(-50%);
+    border-left: 1px solid rgba(0, 255, 204, 0.28);
+    border-right: 1px solid rgba(0, 255, 204, 0.28);
+    box-shadow: 0 0 48px rgba(0, 190, 255, 0.18), 0 0 100px rgba(0, 0, 0, 0.8);
+  }
 }
 
 /* 上70%: プレイ画面（HUDは重ねて領域を奪わない） */
