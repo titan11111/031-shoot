@@ -161,12 +161,17 @@ function initAudio() {
     if (!audioInitialized) {
         initAudioContext();
         bgm.play().catch(() => {});
+        // iOS向けの事前アンロック。停止完了まで必ず無音にし、通常BGMとの混線を防ぐ
+        bossBgm.volume = 0;
         bossBgm.play()
             .then(() => {
                 bossBgm.pause();
                 bossBgm.currentTime = 0;
+                bossBgm.volume = 1;
             })
-            .catch(() => {});
+            .catch(() => {
+                bossBgm.volume = 1;
+            });
         audioInitialized = true;
     }
     if (audioContext && audioContext.state === 'suspended') {
