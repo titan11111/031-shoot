@@ -352,6 +352,139 @@ const Sprites = {
         ctx.arc(48, 8, 4, 0, Math.PI * 2);
         ctx.fill();
 
+        this.drawBossMechanicalUpgrades(ctx, gameState.stage, frame, accent, gold);
+
+        ctx.restore();
+    },
+
+    drawBossMechanicalUpgrades(ctx, stage, frame, accent, gold) {
+        if (stage < 2) return;
+        ctx.save();
+        ctx.lineJoin = 'round';
+
+        // STAGE 2: リベット付き増加装甲
+        ctx.fillStyle = '#182434';
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        [-1, 1].forEach(side => {
+            ctx.beginPath();
+            ctx.moveTo(side * 34, -62);
+            ctx.lineTo(side * 78, -78);
+            ctx.lineTo(side * 104, -48);
+            ctx.lineTo(side * 66, -30);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            for (let i = 0; i < 3; i++) {
+                this.drawGlowCircle(ctx, side * (48 + i * 18), -56 - i * 4, 2.5, gold);
+            }
+        });
+
+        if (stage >= 3) {
+            // STAGE 3: 追従する肩部ツインキャノン
+            const recoil = Math.max(0, Math.sin(frame * 0.16)) * 5;
+            [-1, 1].forEach(side => {
+                ctx.save();
+                ctx.translate(side * 104, -44 + recoil);
+                ctx.rotate(side * -0.12);
+                ctx.fillStyle = '#26384d';
+                ctx.strokeStyle = gold;
+                ctx.lineWidth = 2;
+                ctx.fillRect(-13, -35, 26, 42);
+                ctx.strokeRect(-13, -35, 26, 42);
+                ctx.fillStyle = '#080d16';
+                ctx.fillRect(-9, -62, 7, 31);
+                ctx.fillRect(3, -62, 7, 31);
+                ctx.strokeStyle = accent;
+                ctx.strokeRect(-9, -62, 7, 31);
+                ctx.strokeRect(3, -62, 7, 31);
+                ctx.restore();
+            });
+        }
+
+        if (stage >= 4) {
+            // STAGE 4: 回転ギアとセンサーアンテナ
+            const gearRotation = frame * 0.045;
+            [-1, 1].forEach(side => {
+                ctx.save();
+                ctx.translate(side * 72, 50);
+                ctx.rotate(side * gearRotation);
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 4;
+                for (let tooth = 0; tooth < 8; tooth++) {
+                    ctx.rotate(Math.PI / 4);
+                    ctx.strokeRect(-3, -25, 6, 9);
+                }
+                ctx.beginPath();
+                ctx.arc(0, 0, 18, 0, Math.PI * 2);
+                ctx.stroke();
+                this.drawGlowCircle(ctx, 0, 0, 6, gold);
+                ctx.restore();
+            });
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-18, -78);
+            ctx.lineTo(-32, -112);
+            ctx.moveTo(18, -78);
+            ctx.lineTo(32, -112);
+            ctx.stroke();
+            this.drawGlowCircle(ctx, -33, -114, 4, accent);
+            this.drawGlowCircle(ctx, 33, -114, 4, accent);
+        }
+
+        if (stage >= 5) {
+            // STAGE 5: 展開翼とミサイルポッド
+            const wing = 5 + Math.sin(frame * 0.06) * 5;
+            [-1, 1].forEach(side => {
+                ctx.fillStyle = '#101927';
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(side * 82, 38);
+                ctx.lineTo(side * (142 + wing), 8);
+                ctx.lineTo(side * 126, 62);
+                ctx.lineTo(side * 72, 70);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                for (let row = 0; row < 2; row++) {
+                    for (let col = 0; col < 2; col++) {
+                        this.drawGlowCircle(ctx, side * (101 + col * 16), 34 + row * 14, 4, '#ff6b00');
+                    }
+                }
+            });
+        }
+
+        if (stage >= 6) {
+            // STAGE 6: 最終形態。王冠状レール、補助コア、噴射炎
+            ctx.strokeStyle = '#ff304f';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-62, -84);
+            ctx.lineTo(-42, -126);
+            ctx.lineTo(-15, -96);
+            ctx.lineTo(0, -138);
+            ctx.lineTo(15, -96);
+            ctx.lineTo(42, -126);
+            ctx.lineTo(62, -84);
+            ctx.stroke();
+            [-1, 1].forEach(side => {
+                this.drawGlowCircle(ctx, side * 42, -18, 12, '#ff1744');
+                const flame = 18 + Math.sin(frame * 0.25 + side) * 7;
+                const exhaust = ctx.createLinearGradient(side * 88, 72, side * 88, 72 + flame);
+                exhaust.addColorStop(0, '#ffffff');
+                exhaust.addColorStop(0.35, '#00d9ff');
+                exhaust.addColorStop(1, 'rgba(255,0,80,0)');
+                ctx.fillStyle = exhaust;
+                ctx.beginPath();
+                ctx.moveTo(side * 100, 65);
+                ctx.lineTo(side * 88, 72 + flame);
+                ctx.lineTo(side * 76, 65);
+                ctx.closePath();
+                ctx.fill();
+            });
+        }
         ctx.restore();
     },
 

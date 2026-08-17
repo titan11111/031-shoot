@@ -151,6 +151,21 @@ body {
   grid-template-columns: repeat(3, var(--pad-size));
   grid-template-rows: repeat(3, var(--pad-size));
   gap: 3px;
+  touch-action: none;
+  border-radius: 50%;
+}
+
+#moveControls::after {
+  content: '';
+  grid-column: 2;
+  grid-row: 2;
+  width: 45%;
+  height: 45%;
+  place-self: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.42), rgba(0, 80, 72, 0.28));
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.24);
+  pointer-events: none;
 }
 
 #leftBtn { grid-column: 1; grid-row: 2; }
@@ -311,7 +326,7 @@ body {
   display: none !important;
 }
 
-/* 開始画面の武器一覧: 2列・縦スクロールなし */
+/* 開始画面の武器一覧: 2列・全アイテムを縦スクロールで確認 */
 #itemList {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -319,7 +334,10 @@ body {
   width: 100%;
   max-width: 420px;
   margin: 0 0 4px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   flex: 0 1 auto;
   min-height: 0;
 }
